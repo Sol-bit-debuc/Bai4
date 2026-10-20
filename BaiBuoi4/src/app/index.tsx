@@ -3,7 +3,6 @@ import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   FlatList,
   TouchableOpacity,
   Image,
@@ -22,12 +21,11 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const [students, setStudents] = useState<Student[]>([]);
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  // Tải dữ liệu mỗi khi quay lại màn hình
+  // Tải dữ liệu mỗi khi mở lại màn hình danh sách
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -44,6 +42,7 @@ export default function HomeScreen() {
           }
         } catch (err) {
           console.error("Load students error:", err);
+
           if (active) {
             setError(t("loadError"));
           }
@@ -71,24 +70,14 @@ export default function HomeScreen() {
       setStudents(data);
       setError("");
     } catch (err) {
-      console.error(err);
+      console.error("Refresh students error:", err);
       setError(t("loadError"));
     } finally {
       setRefreshing(false);
     }
   };
 
-  // Tìm kiếm theo họ tên và MSSV
-  const filteredStudents = students.filter((student) => {
-    const keyword = search.trim().toLowerCase();
-
-    return (
-      student.fullName.toLowerCase().includes(keyword) ||
-      student.studentCode.toLowerCase().includes(keyword)
-    );
-  });
-
-  // Mở màn hình chi tiết
+  // Mở màn hình chi tiết sinh viên
   const openDetail = (id: string) => {
     router.push({
       pathname: "/detail",
@@ -101,7 +90,7 @@ export default function HomeScreen() {
     router.push("/form");
   };
 
-  // Hiển thị một sinh viên
+  // Hiển thị từng sinh viên
   const renderStudent = ({ item }: { item: Student }) => {
     const firstLetter =
       item.fullName.trim().charAt(0).toUpperCase() || "?";
@@ -160,37 +149,16 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      {/* Thanh tìm kiếm */}
-      <View style={styles.searchBox}>
-        <Text style={styles.searchIcon}>⌕</Text>
-
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t("search")}
-          placeholderTextColor="#9ca3af"
-          value={search}
-          onChangeText={setSearch}
-        />
-
-        {search.length > 0 && (
-          <TouchableOpacity
-            onPress={() => setSearch("")}
-          >
-            <Text style={styles.clearText}>✕</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Thống kê số sinh viên */}
+      {/* Số lượng sinh viên */}
       {!loading && !error && (
         <View style={styles.countContainer}>
           <Text style={styles.countText}>
-            {t("studentList")} ({filteredStudents.length})
+            {t("studentList")} ({students.length})
           </Text>
         </View>
       )}
 
-      {/* Danh sách */}
+      {/* Danh sách sinh viên */}
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator
@@ -204,14 +172,16 @@ export default function HomeScreen() {
         </View>
       ) : (
         <FlatList
-          data={error ? [] : filteredStudents}
+          data={error ? [] : students}
           keyExtractor={(item) => item.id}
           renderItem={renderStudent}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={refreshStudents}
+              colors={["#2563eb"]}
             />
           }
           ListEmptyComponent={
@@ -219,13 +189,10 @@ export default function HomeScreen() {
               <Text style={styles.emptyIcon}>🎓</Text>
 
               <Text style={styles.emptyText}>
-                {error ||
-                  (search
-                    ? t("noResults")
-                    : t("noStudents"))}
+                {error || t("noStudents")}
               </Text>
 
-              {!search && !error && (
+              {!error && (
                 <Text style={styles.emptyHint}>
                   {t("addFirstStudent")}
                 </Text>
@@ -239,6 +206,7 @@ export default function HomeScreen() {
       <TouchableOpacity
         style={styles.addButton}
         onPress={openAddStudent}
+        activeOpacity={0.85}
         accessibilityLabel={t("addStudent")}
       >
         <Text style={styles.addButtonText}>+</Text>
@@ -272,42 +240,10 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  searchBox: {
-    backgroundColor: "#ffffff",
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-
-  searchIcon: {
-    fontSize: 27,
-    color: "#9ca3af",
-    marginRight: 10,
-  },
-
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: 14,
-    color: "#111827",
-    outlineStyle: "none",
-  } as any,
-
-  clearText: {
-    fontSize: 18,
-    color: "#9ca3af",
-    padding: 8,
-  },
-
   countContainer: {
     paddingHorizontal: 18,
-    marginBottom: 12,
+    marginTop: 20,
+    marginBottom: 14,
   },
 
   countText: {
@@ -332,6 +268,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
     elevation: 2,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
 
   avatar: {
